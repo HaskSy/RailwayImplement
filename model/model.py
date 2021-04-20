@@ -5,7 +5,7 @@ from typing import (Final,
 from const import constants
 
 CONST = constants.Constants(CARRIAGE_WEIGHT=1,
-                            LOCOMOTIVE_CARRYING=100,
+                            MAX_LOCOMOTIVE_CARRYING=100,
                             TRAIN_LENGTH_MAX=50)
 
 
@@ -45,7 +45,7 @@ class Carriage:
 
 class Locomotive:
 
-    locomotive_carrying: Final = CONST.LOCOMOTIVE_CARRYING
+    max_locomotive_carrying: Final = CONST.MAX_LOCOMOTIVE_CARRYING
 
     def __init__(self, name: int):
         self.name = name
@@ -72,7 +72,7 @@ class Train:
         sum_mass = 0
         for carriage in self.carriages:
             sum_mass += carriage.carriage_weight + carriage.cargo.mass
-        if self.locomotive.locomotive_carrying > sum_mass:
+        if self.locomotive.max_locomotive_carrying > sum_mass:
             return False
         return True
 
