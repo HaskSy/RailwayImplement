@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from enum import Enum
 from typing import (Final,
                     List)
@@ -13,6 +14,78 @@ class CargoType(Enum):
     PEOPLE = 0
     LIQUID = 1
     CONTAINER = 2
+
+
+class Graph:
+    """
+        Реализовать:
+        Граф в виде матрицы смежности. Можно сделать еще список смежности.
+        1. Объединение графов
+        2. Добавление вершины; Удаление вершины;
+        3. Функция, которая показывает соседние вершины графа;
+        4. Документация.
+
+        5. Добавить проверки при добавлнии и удалении вершин
+    """
+    def __init__(self, V: set, E: set, *args, **kwargs):
+        """
+        Вершины (пока что) - цифры
+        Ребра - кортежи из двух цифр
+        Args:
+            V: set of vertices
+            U: set of edges
+            *args: smt
+            **kwargs: smt
+        """
+        self.V = V
+        self.E = E
+        self.len_V = len(V)
+        self.len_E = len(E)
+        self.adjacency_matrix = [[0 for vertex in V] for vertex in V]
+        self.__pull_adjacency_matrix(self.E)
+
+    def __str__(self):
+        return '\n'.join(str(list) for list in self.adjacency_matrix)
+
+    def __pull_adjacency_matrix(self, E):
+        """
+        This function pulls our adjacency_matrix with 1 if edge does exist
+        Args:
+            E: set of edges
+        Returns: None
+        """
+        for edge in E:
+            self.adjacency_matrix[edge[0] - 1][edge[1] - 1] = 1
+            self.adjacency_matrix[edge[1] - 1][edge[0] - 1] = 1
+
+    def add_vertex(self, vertex, new_edges):
+        """
+        This function can add new vertex
+        Args:
+            new_edges: New edges which correspond to the vertex
+            vertex: Our new vertex
+        Returns: None
+        """
+        self.adjacency_matrix.append([0 for _ in range(self.len_V)])
+        self.__pull_adjacency_matrix(new_edges)
+
+    def del_vertex(self, vertex):
+        """
+        This function can delete vertex
+        Args:
+            vertex: This is the vertex that we'll delete
+        Returns: None
+        """
+        self.adjacency_matrix.pop(vertex)
+
+    def join_graphs(self):
+        pass
+
+    def get_neighboring_vertices(self):
+        pass
+
+    def get_graph(self):
+        return self.adjacency_matrix
 
 
 class World:
@@ -172,3 +245,8 @@ class Station:
         pass
 
     # Maybe there is to be some additional functions if you need
+
+
+if __name__ == "__main__":
+    graph = Graph({1, 2, 3}, {(1, 2), (1, 3), (3, 3)})
+    print(graph)
