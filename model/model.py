@@ -165,8 +165,24 @@ class Station:
                     carriages[i].cargo = None
                 self.add_carriage(carriages[i])
 
-    def compose_trains(self) -> None:
-        pass
+    def compose_trains(self, destination: int) -> None:
+        locomotive = self.locomotives.pop()  # берем один локомотив
+        train = Train(locomotive, destination)  # создаем новый поезд
+        # напишем счетчики
+        current_carrying = 0  # for max_locomotive_carrying
+        current_length = 0  # train_length_max
+        new_carriages = []  # новый список вагонов
+        for carriage in self.carriages:
+            dest = carriage.cargo.destination
+            massa = carriage.current_mass
+            if massa + current_carrying >= locomotive.max_locomotive_carrying or \
+                    current_length + 1 >= train.train_length_max or dest != destination:
+                continue
+            current_carrying = massa + current_carrying
+            current_length = current_length + 1
+            new_carriages.append(carriage)
+        train.carriages = new_carriages
+
 
     def log(self) -> None:
         pass
