@@ -1,7 +1,8 @@
 from __future__ import annotations
 from enum import Enum
 from typing import (Final,
-                    List)
+                    List,
+                    Dict)
 from const import constants
 
 CONST = constants.Constants(CARRIAGE_WEIGHT=1,
@@ -17,28 +18,28 @@ class CargoType(Enum):
 
 class Cargo:
 
-    def __init__(self, name: int, mass: int, destination: int, cargo_type: CargoType):
-        self.name = name
-        self.mass = mass
-        self.destination = destination
-        self.cargo_type = cargo_type
+    def __init__(self, cargo_id: int, mass: int, destination: int, cargo_type: CargoType):
+        self.cargo_id: int = cargo_id
+        self.mass: int = mass
+        self.destination: int = destination
+        self.cargo_type: CargoType = cargo_type
 
 
 class Carriage:
 
     carriage_weight: Final = CONST.CARRIAGE_WEIGHT
 
-    def __init__(self, name: int, cargo: Cargo = None):
-        self.name = name
-        self.cargo = cargo
+    def __init__(self, carriage_id: int, cargo: Cargo = None):
+        self.carriage_id: int = carriage_id
+        self.cargo: Cargo = cargo
 
 
 class Locomotive:
 
     max_locomotive_carrying: Final = CONST.MAX_LOCOMOTIVE_CARRYING
 
-    def __init__(self, name: int):
-        self.name = name
+    def __init__(self, locomotive_id: int):
+        self.locomotive_id: int = locomotive_id
 
 
 class Train:
@@ -49,9 +50,10 @@ class Train:
         if carriages is None:
             carriages = []
 
-        self.locomotive = locomotive
-        self.destination = destination
-        self.carriages = carriages
+        self.name: str = str(locomotive.locomotive_id) + "_" + str(destination)
+        self.locomotive: Locomotive = locomotive
+        self.destination: int = destination
+        self.carriages: List[Carriage] = carriages
 
     def am_i_legal(self) -> bool:
         # Function which check if this train actually able to move (might be renamed)
@@ -69,23 +71,23 @@ class Train:
 
 class Station:
 
-    def __init__(self, name: int) -> None:
-        self.name = name
-        self.export_cargos = []
-        self.import_cargos = []
-        self.carriages = []
-        self.locomotives = []
-        self.trains_in = []
-        self.trains_out = []
-        self.destination_dict = dict()
+    def __init__(self, station_id: int) -> None:
+        self.station_id: int = station_id
+        self.export_cargos: List[Cargo] = []
+        self.import_cargos: List[Cargo] = []
+        self.carriages: List[Carriage] = []
+        self.locomotives: List[Locomotive] = []
+        self.trains_in: List[Train] = []
+        self.trains_out: List[Train] = []
+        self.destination_dict: Dict[int, int] = dict()
 
     def add_export_cargo(self, cargo: Cargo) -> None:
         self.export_cargos.append(cargo)
 
-    def delete_export_cargo(self, name: int) -> Cargo:
+    def delete_export_cargo(self, cargo_id: int) -> Cargo:
         index = 0
         for cargo in self.export_cargos:
-            if cargo.name == name:
+            if cargo.cargo_id == cargo_id:
                 return self.export_cargos.pop(index)
             index += 1
         raise ValueError("element is not in list")
@@ -93,10 +95,10 @@ class Station:
     def add_import_cargo(self, cargo: Cargo) -> None:
         self.import_cargos.append(cargo)
 
-    def delete_import_cargo(self, name: int) -> Cargo:
+    def delete_import_cargo(self, cargo_id: int) -> Cargo:
         index = 0
         for cargo in self.import_cargos:
-            if cargo.name == name:
+            if cargo.cargo_id == cargo_id:
                 return self.import_cargos.pop(index)
             index += 1
         raise ValueError("element is not in list")
@@ -104,10 +106,10 @@ class Station:
     def add_carriage(self, carriage: Carriage) -> None:
         self.carriages.append(carriage)
 
-    def delete_carriage(self, name: int) -> Carriage:
+    def delete_carriage(self, carriage_id: int) -> Carriage:
         index = 0
         for carriage in self.carriages:
-            if carriage.name == name:
+            if carriage.carriage_id == carriage_id:
                 return self.carriages.pop(index)
             index += 1
         raise ValueError("element is not in list")
@@ -115,10 +117,10 @@ class Station:
     def add_locomotive(self, locomotive: Locomotive) -> None:
         self.locomotives.append(locomotive)
 
-    def delete_locomotive(self, name: int) -> Locomotive:
+    def delete_locomotive(self, locomotive_id: int) -> Locomotive:
         index = 0
         for locomotive in self.locomotives:
-            if locomotive.name == name:
+            if locomotive.locomotive_id == locomotive_id:
                 return self.locomotives.pop(index)
             index += 1
         raise ValueError("element is not in list")
@@ -126,10 +128,10 @@ class Station:
     def add_train_in(self, train_in: Train) -> None:
         self.trains_in.append(train_in)
 
-    def delete_train_in(self, name: int) -> Train:
+    def delete_train_in(self, train_name: str) -> Train:
         index = 0
         for train in self.trains_in:
-            if train.name == name:
+            if train.name == train_name:
                 return self.trains_in.pop(index)
             index += 1
         raise ValueError("element is not in list")
@@ -137,10 +139,10 @@ class Station:
     def add_train_out(self, train_out: Train) -> None:
         self.trains_out.append(train_out)
 
-    def delete_train_out(self, name: int) -> Train:
+    def delete_train_out(self, train_name: str) -> Train:
         index = 0
         for train in self.trains_out:
-            if train.name == name:
+            if train.name == train_name:
                 return self.trains_out.pop(index)
             index += 1
         raise ValueError("element is not in list")
@@ -151,7 +153,7 @@ class Station:
             carriages = train.carriages
             self.add_locomotive(locomotive)
             for i in range(len(carriages)):
-                if carriages[i].cargo.destination == self.name:
+                if carriages[i].cargo.destination == self.station_id:
                     self.add_import_cargo(carriages[i].cargo)
                     carriages[i].cargo = None
                 self.add_carriage(carriages[i])
@@ -175,7 +177,7 @@ class World:
 
     def __init__(self):
         self.date = 0
-        self.stations = []
+        self.stations: List[Station] = []
         self.graph: Graph
 
     def _fill_dest_dicts(self) -> None:
