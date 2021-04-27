@@ -65,7 +65,7 @@ class Train:
         # sum(map(lambda x: x.carriage_weight + x.cargo.mass, self.carriages))
         sum_mass = 0
         for carriage in self.carriages:
-            sum_mass += carriage.carriage_weight + carriage.cargo.mass
+            sum_mass += carriage.current_mass
         if self.locomotive.max_locomotive_carrying > sum_mass:
             return False
         return True
