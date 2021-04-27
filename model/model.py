@@ -54,6 +54,7 @@ class Train:
         self.locomotive: Locomotive = locomotive
         self.destination: int = destination
         self.carriages: List[Carriage] = carriages
+        self.departure: int
 
     def am_i_legal(self) -> bool:
         # Function which check if this train actually able to move (might be renamed)
