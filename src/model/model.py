@@ -2,7 +2,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import (Final,
                     List)
-from const import constants
+from src.const import constants
 
 CONST = constants.Constants(CARRIAGE_WEIGHT=1,
                             MAX_LOCOMOTIVE_CARRYING=100,
