@@ -27,11 +27,12 @@ class Cargo:
 
 class Carriage:
 
-    carriage_weight: Final = CONST.CARRIAGE_WEIGHT
+    __carriage_weight: Final = CONST.CARRIAGE_WEIGHT
 
     def __init__(self, carriage_id: int, cargo: Cargo = None):
         self.carriage_id: int = carriage_id
         self.cargo: Cargo = cargo
+        self.current_mass = cargo.mass + self.__carriage_weight
 
 
 class Locomotive:
