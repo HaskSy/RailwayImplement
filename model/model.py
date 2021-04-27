@@ -15,16 +15,6 @@ class CargoType(Enum):
     CONTAINER = 2
 
 
-class World:
-
-    # II priority task, cannot be done without graph implementation
-
-    def __init__(self):
-        self.date = 0
-        self.stations = []
-        self.graph = []
-
-
 class Cargo:
 
     def __init__(self, name: int, mass: int, destination: int, cargo_type: CargoType):
@@ -87,6 +77,7 @@ class Station:
         self.locomotives = []
         self.trains_in = []
         self.trains_out = []
+        self.destination_dict = dict()
 
     def add_export_cargo(self, cargo: Cargo) -> None:
         self.export_cargos.append(cargo)
@@ -172,3 +163,27 @@ class Station:
         pass
 
     # Maybe there is to be some additional functions if you need
+
+
+class Graph:
+    pass
+
+
+class World:
+
+    # II priority task, cannot be done without graph implementation
+
+    def __init__(self):
+        self.date = 0
+        self.stations = []
+        self.graph: Graph
+
+    def _fill_dest_dicts(self) -> None:
+        """
+        Raise __set_station_dest_dict for each station
+        """
+        pass
+
+    def __set_station_dest_dict(self, station: Station) -> None:
+        pass
+
