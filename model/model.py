@@ -20,7 +20,7 @@ class World:
     # II priority task, cannot be done without graph implementation
 
     def __init__(self):
-        self.data = 0
+        self.date = 0
         self.stations = []
         self.graph = []
 
