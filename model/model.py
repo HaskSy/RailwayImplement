@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import igraph as ig
 from enum import Enum
 from typing import (Final,
                     List)
@@ -18,74 +19,130 @@ class CargoType(Enum):
 
 class Graph:
     """
-        Реализовать:
-        Граф в виде матрицы смежности. Можно сделать еще список смежности.
-        1. Объединение графов
-        2. Добавление вершины; Удаление вершины;
-        3. Функция, которая показывает соседние вершины графа;
-        4. Документация.
+        Как создавать объект графа?
+            graph = Graph(4, edges=[[0, 1], [2, 3], [2, 1], [0, 3], [0, 2]],
+                          cities=["Moscow", "New York", "Tokyo", "Rome"], directed=True)
 
-        5. Добавить проверки при добавлнии и удалении вершин
+        Задать веса на рёбрах?
+            graph.set_distances_between_cities([100, 2000, 3, 5, 1])
+
+        Список соседних вершин?
+            graph.get_neighboring_vertices(vertex)
+
+        Нарисовать граф?
+            graph.draw_graph()
+
+        Добавить:
+        1. Всякие штучки при рисовании графа
+        2. Документация
     """
-    def __init__(self, V: set, E: set, *args, **kwargs):
+    def __init__(self, n: int, edges: list, cities=None, adjacency_matrix=None, directed=False, *args, **kwargs):
         """
-        Вершины (пока что) - цифры
-        Ребра - кортежи из двух цифр
         Args:
-            V: set of vertices
-            U: set of edges
+            n: count of vertices
+            edges: list of edges
+            cities: list of strings with cities names
+            adjacency_matrix: adjacency_matrix (list of lists)
+            directed: is directed? default = FALSE
             *args: smt
             **kwargs: smt
         """
-        self.V = V
-        self.E = E
-        self.len_V = len(V)
-        self.len_E = len(E)
-        self.adjacency_matrix = [[0 for vertex in V] for vertex in V]
-        self.__pull_adjacency_matrix(self.E)
+        self.graph = ig.Graph(n=n, edges=edges, directed=directed)
+        self.graph_with_matrix = ig.Graph.Adjacency(adjacency_matrix) if adjacency_matrix is not None else [[]]
+        if cities is not None:
+            self.graph.vs["name"] = cities
+        self.vertices = self.graph.vs
+        self.edges = self.graph.get_edgelist()
 
     def __str__(self):
-        return '\n'.join(str(list) for list in self.adjacency_matrix)
+        return self.graph.__str__()
 
-    def __pull_adjacency_matrix(self, E):
-        """
-        This function pulls our adjacency_matrix with 1 if edge does exist
-        Args:
-            E: set of edges
-        Returns: None
-        """
-        for edge in E:
-            self.adjacency_matrix[edge[0] - 1][edge[1] - 1] = 1
-            self.adjacency_matrix[edge[1] - 1][edge[0] - 1] = 1
-
-    def add_vertex(self, vertex, new_edges):
+    def add_vertices(self, vertices):
         """
         This function can add new vertex
         Args:
-            new_edges: New edges which correspond to the vertex
-            vertex: Our new vertex
+            vertices:
         Returns: None
         """
-        self.adjacency_matrix.append([0 for _ in range(self.len_V)])
-        self.__pull_adjacency_matrix(new_edges)
+        self.graph.add_vertices(vertices)
 
-    def del_vertex(self, vertex):
+    def del_vertices(self, vertices):
         """
         This function can delete vertex
         Args:
-            vertex: This is the vertex that we'll delete
+            vertices: This are the vertices that we'll delete
         Returns: None
         """
-        self.adjacency_matrix.pop(vertex)
+        self.graph.delete_vertices(vertices)
 
-    def join_graphs(self):
-        pass
+    def join_graphs(self, other):
+        """
+        Args:
+            other: graph that we'll join
+        Returns: None
+        """
+        self.graph.union(other)
 
-    def get_neighboring_vertices(self):
-        pass
+    def set_distances_between_cities(self, distances):
+        """
+        Args:
+            distances: list of distances between cities
+        Returns: None
+        """
+        if len(distances) != self.graph.ecount():
+            print("You haven't indicated all distances")
+        else:
+            self.graph.es["distance"] = distances
 
-    def get_graph(self):
-        return self.adjacency_matrix
+    def get_neighboring_vertices(self, vertex) -> list:
+        """
+        Args:
+            vertex: the vertex at witch we'll see the neighbors
+        Returns: list of neighbors
+        """
+        return self.graph.neighbors(vertex)
+
+    def get_graph(self) -> Graph:
+        """
+        Returns: igraph.Graph object
+        """
+        return self.graph
+
+    def get_vertices_list(self):
+        """
+        Returns: list of vertices
+        """
+        return self.vertices
+
+    def get_edges_list(self):
+        """
+        Returns: list of edges
+        """
+        return self.edges
+
+    def get_vertices_count(self):
+        """
+        Returns: vertices count
+        """
+        return self.graph.vcount()
+
+    def get_edges_count(self):
+        """
+        Returns: edges count
+        """
+        return self.graph.ecount()
+
+    def draw_graph(self, layout="kk", vertex_color=None):
+        """
+        Args:
+            layout: ...
+            vertex_color: ...
+        Returns: None. Nevertheless this function draws graph!
+        """
+        layout = self.graph.layout(layout)
+        visual_style = {"layout": layout, "vertex_label": self.graph.vs["name"], "vertex_size": 20,
+                        "edge_label": self.graph.es["distance"]}
+        ig.plot(self.graph, **visual_style)
 
 
 class World:
@@ -248,5 +305,9 @@ class Station:
 
 
 if __name__ == "__main__":
-    graph = Graph({1, 2, 3}, {(1, 2), (1, 3), (3, 3)})
+    graph = Graph(4, edges=[[0, 1], [2, 3], [2, 1], [0, 3], [0, 2]], cities=["Moscow", "New York", "Tokyo", "Rome"],
+                  directed=True)
+    graph.set_distances_between_cities([100, 2000, 3, 5, 1])
+    print(graph.get_neighboring_vertices(0))
     print(graph)
+    graph.draw_graph()
