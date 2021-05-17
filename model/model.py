@@ -226,6 +226,15 @@ class Station:
 
 
 
+    def work_with_carriages(self) -> None:
+        self.decompose_trains()
+        for carriage in self.carriages:
+            if carriage.cargo == None and self.export_cargos != []: #not carriage.cargo
+                carriage.cargo = self.export_cargos.pop()
+        self.compose_trains()
+
+
+
     def log(self) -> None:
         pass
 
