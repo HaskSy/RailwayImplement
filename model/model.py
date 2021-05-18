@@ -332,9 +332,3 @@ class World:
     def __set_station_dest_dict(self, station: Station) -> None:
         pass
 
-
-if __name__ == "__main__":
-    g = Graph(4, edges=[[0, 1], [2, 3], [2, 1], [0, 3], [0, 2]],
-              cities=["Moscow", "New York", "Tokyo", "Rome"], directed=True)
-    g.set_distances_between_cities([100, 2000, 3, 5, 1])
-    g.draw_graph()
