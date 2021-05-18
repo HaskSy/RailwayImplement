@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import igraph as ig
+"""
+Also you have to install, if you are working on windows : 
+    pip install pycairo==1.16.2
+    pip install cairocffi
+"""
 from enum import Enum
 from typing import (Final,
                     List,
@@ -18,8 +23,7 @@ class CargoType(Enum):
     CONTAINER = 2
 
 
-class Graph:1
-  
+class Graph:
     """
         Как создавать объект графа?
             graph = Graph(4, edges=[[0, 1], [2, 3], [2, 1], [0, 3], [0, 2]],
@@ -144,7 +148,7 @@ class Graph:1
         layout = self.graph.layout(layout)
         visual_style = {"layout": layout, "vertex_label": self.graph.vs["name"], "vertex_size": 20,
                         "edge_label": self.graph.es["distance"]}
-        ig.plot(self.graph, **visual_style)
+        ig.plot(self.graph, target='image.png', **visual_style)
 
 
 class World:
@@ -329,3 +333,8 @@ class World:
         pass
 
 
+if __name__ == "__main__":
+    g = Graph(4, edges=[[0, 1], [2, 3], [2, 1], [0, 3], [0, 2]],
+              cities=["Moscow", "New York", "Tokyo", "Rome"], directed=True)
+    g.set_distances_between_cities([100, 2000, 3, 5, 1])
+    g.draw_graph()
