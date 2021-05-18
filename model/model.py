@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import igraph as ig
+import numpy as np
 from enum import Enum
 from typing import (Final,
                     List,
@@ -16,145 +17,6 @@ class CargoType(Enum):
     PEOPLE = 0
     LIQUID = 1
     CONTAINER = 2
-
-
-class Graph:1
-  
-    """
-        Как создавать объект графа?
-            graph = Graph(4, edges=[[0, 1], [2, 3], [2, 1], [0, 3], [0, 2]],
-                          cities=["Moscow", "New York", "Tokyo", "Rome"], directed=True)
-
-        Задать веса на рёбрах?
-            graph.set_distances_between_cities([100, 2000, 3, 5, 1])
-
-        Список соседних вершин?
-            graph.get_neighboring_vertices(vertex)
-
-        Нарисовать граф?
-            graph.draw_graph()
-
-        Добавить:
-        1. Всякие штучки при рисовании графа
-        2. Документация
-    """
-    def __init__(self, n: int, edges: list, cities=None, adjacency_matrix=None, directed=False, *args, **kwargs):
-        """
-        Args:
-            n: count of vertices
-            edges: list of edges
-            cities: list of strings with cities names
-            adjacency_matrix: adjacency_matrix (list of lists)
-            directed: is directed? default = FALSE
-            *args: smt
-            **kwargs: smt
-        """
-        self.graph = ig.Graph(n=n, edges=edges, directed=directed)
-        self.graph_with_matrix = ig.Graph.Adjacency(adjacency_matrix) if adjacency_matrix is not None else [[]]
-        if cities is not None:
-            self.graph.vs["name"] = cities
-        self.vertices = self.graph.vs
-        self.edges = self.graph.get_edgelist()
-
-    def __str__(self):
-        return self.graph.__str__()
-
-    def add_vertices(self, vertices):
-        """
-        This function can add new vertex
-        Args:
-            vertices:
-        Returns: None
-        """
-        self.graph.add_vertices(vertices)
-
-    def del_vertices(self, vertices):
-        """
-        This function can delete vertex
-        Args:
-            vertices: This are the vertices that we'll delete
-        Returns: None
-        """
-        self.graph.delete_vertices(vertices)
-
-    def join_graphs(self, other):
-        """
-        Args:
-            other: graph that we'll join
-        Returns: None
-        """
-        self.graph.union(other)
-
-    def set_distances_between_cities(self, distances):
-        """
-        Args:
-            distances: list of distances between cities
-        Returns: None
-        """
-        if len(distances) != self.graph.ecount():
-            print("You haven't indicated all distances")
-        else:
-            self.graph.es["distance"] = distances
-
-    def get_neighboring_vertices(self, vertex) -> list:
-        """
-        Args:
-            vertex: the vertex at witch we'll see the neighbors
-        Returns: list of neighbors
-        """
-        return self.graph.neighbors(vertex)
-
-    def get_graph(self) -> Graph:
-        """
-        Returns: igraph.Graph object
-        """
-        return self.graph
-
-    def get_vertices_list(self):
-        """
-        Returns: list of vertices
-        """
-        return self.vertices
-
-    def get_edges_list(self):
-        """
-        Returns: list of edges
-        """
-        return self.edges
-
-    def get_vertices_count(self):
-        """
-        Returns: vertices count
-        """
-        return self.graph.vcount()
-
-    def get_edges_count(self):
-        """
-        Returns: edges count
-        """
-        return self.graph.ecount()
-
-    def draw_graph(self, layout="kk", vertex_color=None):
-        """
-        Args:
-            layout: ...
-            vertex_color: ...
-        Returns: None. Nevertheless this function draws graph!
-        """
-        layout = self.graph.layout(layout)
-        visual_style = {"layout": layout, "vertex_label": self.graph.vs["name"], "vertex_size": 20,
-                        "edge_label": self.graph.es["distance"]}
-        ig.plot(self.graph, **visual_style)
-
-
-class World:
-
-    # II priority task, cannot be done without graph implementation
-
-    def __init__(self):
-        self.data = 0
-        self.stations = []
-        self.graph = []
 
 
 class Cargo:
@@ -310,22 +172,199 @@ class Station:
     # Maybe there is to be some additional functions if you need
 
 
+class Graph:
+    """
+        Как создавать объект графа?
+            graph = Graph(4, edges=[[0, 1], [2, 3], [2, 1], [0, 3], [0, 2]],
+                          cities=["Moscow", "New York", "Tokyo", "Rome"], directed=True)
+
+        Задать веса на рёбрах?
+            graph.set_distances_between_cities([100, 2000, 3, 5, 1])
+
+        Список соседних вершин?
+            graph.get_neighboring_vertices(vertex)
+
+        Нарисовать граф?
+            graph.draw_graph()
+
+        Добавить:
+        1. Всякие штучки при рисовании графа
+        2. Документация
+    """
+
+    def __init__(self, n: int, edges: list, cities=None, adjacency_matrix=None, directed=False, *args, **kwargs):
+        """
+        Args:
+            n: count of vertices
+            edges: list of edges
+            cities: list of strings with cities names
+            adjacency_matrix: adjacency_matrix (list of lists)
+            directed: is directed? default = FALSE
+            *args: smt
+            **kwargs: smt
+        """
+        self.graph = ig.Graph(n=n, edges=edges, directed=directed)
+        self.graph_with_matrix = ig.Graph.Adjacency(adjacency_matrix) if adjacency_matrix is not None else [[]]
+        if cities is not None:
+            self.graph.vs["name"] = cities
+        self.vertices = self.graph.vs
+        self.edges = self.graph.get_edgelist()
+
+    def __str__(self):
+        return self.graph.__str__()
+
+    def add_vertices(self, vertices):
+        """
+        This function can add new vertex
+        Args:
+            vertices:
+        Returns: None
+        """
+        self.graph.add_vertices(vertices)
+
+    def del_vertices(self, vertices):
+        """
+        This function can delete vertex
+        Args:
+            vertices: This are the vertices that we'll delete
+        Returns: None
+        """
+        self.graph.delete_vertices(vertices)
+
+    def join_graphs(self, other):
+        """
+        Args:
+            other: graph that we'll join
+        Returns: None
+        """
+        self.graph.union(other)
+
+    def set_distances_between_cities(self, distances):
+        """
+        Args:
+            distances: list of distances between cities
+        Returns: None
+        """
+        if len(distances) != self.graph.ecount():
+            print("You haven't indicated all distances")
+        else:
+            self.graph.es["distance"] = distances
+
+    def get_neighboring_vertices(self, vertex) -> list:
+        """
+        Args:
+            vertex: the vertex at witch we'll see the neighbors
+        Returns: list of neighbors
+        """
+        return self.graph.neighbors(vertex)
+
+    def get_graph(self) -> Graph:
+        """
+        Returns: igraph.Graph object
+        """
+        return self.graph
+
+    def get_vertices_list(self):
+        """
+        Returns: list of vertices
+        """
+        return self.vertices
+
+    def get_edges_list(self):
+        """
+        Returns: list of edges
+        """
+        return self.edges
+
+    def get_vertices_count(self):
+        """
+        Returns: vertices count
+        """
+        return self.graph.vcount()
+
+    def get_edges_count(self):
+        """
+        Returns: edges count
+        """
+        return self.graph.ecount()
+
+    def draw_graph(self, layout="kk", vertex_color=None):
+        """
+        Args:
+            layout: ...
+            vertex_color: ...
+        Returns: None. Nevertheless this function draws graph!
+        """
+        layout = self.graph.layout(layout)
+        visual_style = {"layout": layout, "vertex_label": self.graph.vs["name"], "vertex_size": 20,
+                        "edge_label": self.graph.es["distance"]}
+        ig.plot(self.graph, **visual_style)
+
+    def floyd_warshall(self):
+        adj_graph = self.graph.get_adjacency()
+        print(adj_graph)
+        path_matrix = np.zeros(adj_graph.shape)
+        n = adj_graph.shape[0]
+        for i in range(0, n):
+            for j in range(0, n):
+                path_matrix[i, j] = i
+                if i != j and adj_graph[i, j] == 0:
+                    path_matrix[i, j] = -30000
+                    adj_graph[i, j] = 30000  # set zeros to any large number which is bigger then the longest way
+
+        for k in range(0, n):
+            for i in range(0, n):
+                for j in range(0, n):
+                    if adj_graph[i, j] > adj_graph[i, k] + adj_graph[k, j]:
+                        adj_graph[i, j] = adj_graph[i, k] + adj_graph[k, j]
+                        path_matrix[i, j] = path_matrix[k, j]
+
+        return path_matrix
+
+    def restore_path_fw(self, path_matrix, i, j, a=None):
+        if a is None:
+            a = []
+        i, j = int(i), int(j)
+        if i == j:
+            a.append(i)
+        elif path_matrix[i, j] == -30000:
+            a.append(i)
+            a.append("-")
+            a.append(j)
+        else:
+            a = self.restore_path_fw(path_matrix, i, path_matrix[i, j], a)
+            a.append(j)
+        return a
+
+
 class World:
 
     # II priority task, cannot be done without graph implementation
 
-    def __init__(self):
+    def __init__(self, init_graph: Graph = None):
         self.date = 0
-        self.stations: List[Station] = []
-        self.graph: Graph
+        self.stations = {}
+        self.graph: Graph = init_graph
+        self.station_index = 0
 
-    def _fill_dest_dicts(self) -> None:
-        """
-        Raise __set_station_dest_dict for each station
-        """
-        pass
+    def __fill_stations_dict(self):
+        for vertex in self.graph.get_vertices_list().indices:
+            self.stations[vertex] = Station(vertex)
 
-    def __set_station_dest_dict(self, station: Station) -> None:
-        pass
+    def __set_station_dest_dict(self, station: Station, p_matrix) -> None:
+        for vertex in self.graph.get_vertices_list().indices:
+            path = self.graph.restore_path_fw(p_matrix, station.station_id, vertex)
+            if "-" in path:
+                station.destination_dict[vertex] = -1
+            else:
+                station.destination_dict[vertex] = path[1]
 
+    def fill_dest_dicts(self) -> None:
+        path_matrix = self.graph.floyd_warshall()
+        for station in self.stations:
+            self.__set_station_dest_dict(station, path_matrix)
 
+    def tick(self) -> None:
+        for station in self.stations:
+            for train in station.trains_out:
+                self.stations[train.destination].add_train_in(station.delete_train_out(train.name))
