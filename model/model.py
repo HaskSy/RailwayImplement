@@ -11,8 +11,8 @@ from typing import (Final,
 from const import constants
 
 CONST = constants.Constants(CARRIAGE_WEIGHT=1,
-                            MAX_LOCOMOTIVE_CARRYING=10000,
-                            TRAIN_LENGTH_MAX=50)
+                            MAX_LOCOMOTIVE_CARRYING=1000,
+                            TRAIN_LENGTH_MAX=5)
 
 
 class CargoType(Enum):
@@ -35,6 +35,9 @@ class Cargo:
         self.mass: int = mass
         self.destination: int = destination
         self.cargo_type: CargoType = cargo_type
+
+    def __str__(self):
+        return f"{self.cargo_id}, {self.mass}, {self.cargo_type}, {self.destination}"
 
 
 class Carriage:
@@ -182,12 +185,12 @@ class Station:
             carriages = train.carriages
             self.add_locomotive(locomotive)
             for i in range(len(carriages)):
-                if carriages[i].cargo.destination == self.station_id:
+                if carriages[i].cargo is not None and carriages[i].cargo.destination == self.station_id:
                     self.add_import_cargo(carriages[i].cargo)
                     carriages[i].cargo = None
                 self.add_carriage(carriages[i])
 
-    def compose_trains(self, destination: int) -> None:
+    def compose_trains(self) -> None:
         # собираем вагоны в словарь по направлениям
         # по направлениям: видимо смежная вершина нашей станции
         # подаем на вход словарю наш дестинатион и получаем смежную вершину
@@ -197,18 +200,22 @@ class Station:
         # не знаю, что делать с удалением, потом можно впихнуть если попросят
         carriages_dict = {}  # словарик для вагонов по направлению
         for carriage in self.carriages:
-            dict_key = self.destination_dict[carriage.cargo.destination]
-            if dict_key in carriages_dict.keys():
-                carriages_dict[dict_key].append(carriage)
-            else:
-                carriages_dict[dict_key] = [carriage]
+            if carriage.cargo is not None:
+                if self.destination_dict[carriage.cargo.destination] == -1:
+                    self.add_import_cargo(carriage.cargo)
+                else:
+                    dict_key = self.destination_dict[carriage.cargo.destination]
+                    if dict_key in carriages_dict.keys():
+                        carriages_dict[dict_key].append(carriage)
+                    else:
+                        carriages_dict[dict_key] = [carriage]
         # реализуем жадное составление поездов
         # отсортируем вагоны по возрастанию массы груза...
         for value in carriages_dict.values():
             value.sort(key=lambda x: x.cargo.mass)
             # value.sort(key=lambda x: x.cargo.mass, reverse=True)
 
-        while self.locomotives != [] and (self.carriages != [] or carriages_dict != {}):
+        while self.locomotives != [] and (self.carriages != [] and carriages_dict != {}):
             locomotive = self.locomotives.pop()  # берем один локомотив
             # ищем направление с максимальным допустимым количеством вагонов
             dest_max = list(carriages_dict.keys())[0]
@@ -222,7 +229,7 @@ class Station:
                 current_length = 0  # train_length_max
                 for i in range(n):
                     massa = mas[i].current_mass
-                    if massa + current_carrying > locomotive.max_locomotive_carrying or\
+                    if massa + current_carrying > locomotive.max_locomotive_carrying or \
                             current_length + 1 > CONST.TRAIN_LENGTH_MAX:
                         break
 
@@ -484,20 +491,25 @@ class World:
             for station in self.stations:
                 stats.write("Station: " + str(self.stations[station].station_id) + '\n' + '\t' + "Cargos: " + '\n')
                 for cargo in self.stations[station].import_cargos:
-                    stats.write('\t' + str(cargo.cargo_id) + " [ " + str(cargo.cargo_type) + " ] " + '\n')
+                    stats.write('\t' + str(cargo.cargo_id) + " [ " + str(cargo.cargo_type) + " ] " + " -> " + str(cargo.destination) + " Mass: " + str(cargo.mass) +  '\n')
                 stats.write("Trains:" + '\n')
                 for train in self.stations[station].trains_out:
                     stats.write(
-                        '\t' + train.name + " : " + station + " -> " + str(train.dest) +
+                        '\t' + train.name + " : " + str(station) + " -> " + str(train.destination) +
                         " - Locomotive: " + str(train.locomotive.locomotive_id) + '\n')
                     for carriage in train.carriages:
-                        stats.write(
-                            '\t' + '\t' + str(carriage.carriage_id) + " [ " + carriage.cargo.cargo_type +
-                            " ] " + " » " + str(carriage.cargo.destination) + '\n')
+                        if carriage.cargo is not None:
+                            stats.write(
+                                '\t' + '\t' + str(carriage.carriage_id) + " [ " + str(carriage.cargo) +
+                                " ] " + " » " + str(carriage.cargo.destination) + '\n')
+                        else:
+                            stats.write('\t' + '\t' + str(carriage.carriage_id) + '\n')
+
 
     def tick(self) -> None:
         self.collect_stats()
         for station in self.stations:
+            self.stations[station].work_with_carriages()
             for train in self.stations[station].trains_out:
                 self.stations[train.destination].add_train_in(self.stations[station].delete_train_out(train.name))
         self.date += 1
@@ -511,25 +523,25 @@ if __name__ == "__main__":
 
     for station in stations:
 
-        station.export_cargos = [Cargo(cargo_id=i*station.station_id,
+        station.export_cargos = [Cargo(cargo_id=(i+1)*(station.station_id+1),
                                        mass=np.random.randint(1, 51),
                                        destination=np.random.choice([i for i in range(n) if i != station.station_id]),
                                        cargo_type=np.random.choice(list(CargoType))) for i in range(10)]
-        station.import_cargos = [Cargo(cargo_id=i*station.station_id,
+        station.import_cargos = [Cargo(cargo_id=(i+1)*(station.station_id+1),
                                        mass=np.random.randint(1, 51),
                                        destination=station.station_id,
                                        cargo_type=np.random.choice(list(CargoType))) for i in range(10, 20)]
 
-        station.carriages = [Carriage(carriage_id= 10*i*station.station_id,
-                                      cargo=Cargo(cargo_id=100 * i * station.station_id,
+        station.carriages = [Carriage(carriage_id=10*(i+1)*(station.station_id+1),
+                                      cargo=Cargo(cargo_id=100 * (i+1) * (station.station_id+1),
                                                   mass=np.random.randint(1, 51),
                                                   destination=np.random.randint(0, n),
                                                   cargo_type=np.random.choice(list(CargoType)))) for i in range(20, 25)]
-        station.locomotives = [Locomotive(locomotive_id=i*station.station_id) for i in range(7)]
-        station.trains_in = [Train(locomotive=Locomotive(locomotive_id=i * 10 * station.station_id),
+        station.locomotives = [Locomotive(locomotive_id=(i+1)*(station.station_id+1)) for i in range(7)]
+        station.trains_in = [Train(locomotive=Locomotive(locomotive_id=(i+1) * 10 * (station.station_id+1)),
                                    destination=np.random.randint(0, n),
-                                   carriages=[Carriage(carriage_id=1000 * j * i * station.station_id,
-                                                       cargo=Cargo(cargo_id=10000 * i * j,
+                                   carriages=[Carriage(carriage_id=1000 * (j+1) * (i+1) * (station.station_id+1),
+                                                       cargo=Cargo(cargo_id=10000 * (i+1) * (j+1),
                                                                    mass=np.random.randint(1, 50),
                                                                    destination=np.random.randint(0, 3),
                                                                    cargo_type=np.random.choice(list(CargoType))))
