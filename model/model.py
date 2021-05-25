@@ -41,6 +41,7 @@ class Carriage:
     __carriage_weight: Final = CONST.CARRIAGE_WEIGHT
 
     def __init__(self, carriage_id: int, cargo: Cargo):
+      
         if carriage_id < 0:
             raise ValueError('carriage_id cannot be negative')
         assert type(cargo) == Cargo, \
@@ -96,7 +97,7 @@ class Train:
 class Station:
 
     def __init__(self, station_id: int) -> None:
-
+      
         if station_id < 0:
             raise ValueError("station_id cannot be negative")
 
@@ -186,8 +187,75 @@ class Station:
                     carriages[i].cargo = None
                 self.add_carriage(carriages[i])
 
-    def compose_trains(self) -> None:
-        pass
+    def compose_trains(self, destination: int) -> None:
+        # собираем вагоны в словарь по направлениям
+        # по направлениям: видимо смежная вершина нашей станции
+        # подаем на вход словарю наш дестинатион и получаем смежную вершину
+        # лучше эффективно - жадно
+        # считаем возможные максимальные длины каждых направлений, а потом выбираем лучшие
+        # заполняем все локомотивы пока не кончатся вагоны или сами локомотивы
+        # не знаю, что делать с удалением, потом можно впихнуть если попросят
+        carriages_dict = {}  # словарик для вагонов по направлению
+        for carriage in self.carriages:
+            dict_key = self.destination_dict[carriage.cargo.destination]
+            if dict_key in carriages_dict.keys():
+                carriages_dict[dict_key].append(carriage)
+            else:
+                carriages_dict[dict_key] = [carriage]
+        # реализуем жадное составление поездов
+        # отсортируем вагоны по возрастанию массы груза...
+        for value in carriages_dict.values():
+            value.sort(key=lambda x: x.cargo.mass)
+            # value.sort(key=lambda x: x.cargo.mass, reverse=True)
+
+        while self.locomotives != [] and (self.carriages != [] or carriages_dict != {}):
+            locomotive = self.locomotives.pop()  # берем один локомотив
+            # ищем направление с максимальным допустимым количеством вагонов
+            dest_max = list(carriages_dict.keys())[0]
+            max_len = 0
+            for key in carriages_dict.keys():
+                mas = carriages_dict[key]
+                n = len(mas)
+                # посчитаем возможную длину для данного направления
+                # напишем счетчики
+                current_carrying = 0  # for max_locomotive_carrying
+                current_length = 0  # train_length_max
+                for i in range(n):
+                    massa = mas[i].current_mass
+                    if massa + current_carrying > locomotive.max_locomotive_carrying or\
+                            current_length + 1 > CONST.TRAIN_LENGTH_MAX:
+                        break
+
+                    current_length += 1
+                    current_carrying += massa
+                # а теперь сравним
+                if current_length == CONST.TRAIN_LENGTH_MAX:
+                    dest_max = key
+                    max_len = current_length
+                    break
+                if current_length > max_len:
+                    dest_max = key
+                    max_len = current_length
+            # получили направление с нужной длиной вагонов. осталось заправить этими вагонами локомотив
+            train = Train(locomotive, dest_max)  # создаем новый поезд
+            new_carriages = carriages_dict[dest_max][:max_len]  # новый список вагонов
+            train.carriages = new_carriages
+            self.trains_out.append(train)  # чух-чух
+            # удалим использованные вагоны
+            for delt in new_carriages:
+                self.carriages.remove(delt)
+                carriages_dict[dest_max].remove(delt)
+
+
+
+    def work_with_carriages(self) -> None:
+        self.decompose_trains()
+        for carriage in self.carriages:
+            if carriage.cargo == None and self.export_cargos != []: #not carriage.cargo
+                carriage.cargo = self.export_cargos.pop()
+        self.compose_trains()
+
+
 
     def log(self) -> None:
         pass
@@ -434,7 +502,7 @@ class World:
                 self.stations[train.destination].add_train_in(self.stations[station].delete_train_out(train.name))
         self.date += 1
 
-
+        
 if __name__ == "__main__":
     name = str(input('Введите имя:'))
     n = int(input('Введите количество станций'))
