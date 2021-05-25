@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+import os
 import igraph as ig
 import numpy as np
 from enum import Enum
@@ -9,7 +11,7 @@ from typing import (Final,
 from const import constants
 
 CONST = constants.Constants(CARRIAGE_WEIGHT=1,
-                            MAX_LOCOMOTIVE_CARRYING=100,
+                            MAX_LOCOMOTIVE_CARRYING=10000,
                             TRAIN_LENGTH_MAX=50)
 
 
@@ -22,6 +24,13 @@ class CargoType(Enum):
 class Cargo:
 
     def __init__(self, cargo_id: int, mass: int, destination: int, cargo_type: CargoType):
+        if cargo_id < 0:
+            raise ValueError('cargo_id cannot be negative')
+        if mass < 0:
+            raise ValueError('mass cannot be negative')
+        if destination < 0:
+            raise ValueError('ID cannot be negative')
+
         self.cargo_id: int = cargo_id
         self.mass: int = mass
         self.destination: int = destination
@@ -29,28 +38,38 @@ class Cargo:
 
 
 class Carriage:
-
     __carriage_weight: Final = CONST.CARRIAGE_WEIGHT
 
-    def __init__(self, carriage_id: int, cargo: Cargo = None):
+    def __init__(self, carriage_id: int, cargo: Cargo):
+        if carriage_id < 0:
+            raise ValueError('carriage_id cannot be negative')
+        assert type(cargo) == Cargo, \
+            f'cargo object is not Cargo type, current type: {type(cargo)}'
+
         self.carriage_id: int = carriage_id
         self.cargo: Cargo = cargo
-        self.current_mass = cargo.mass + self.__carriage_weight
+        self.current_mass = self.__carriage_weight + self.cargo.mass
 
 
 class Locomotive:
-
     max_locomotive_carrying: Final = CONST.MAX_LOCOMOTIVE_CARRYING
 
     def __init__(self, locomotive_id: int):
+        if locomotive_id < 0:
+            raise ValueError('locomotive_id cannot be negative')
         self.locomotive_id: int = locomotive_id
 
 
 class Train:
-
     train_length_max: Final = CONST.TRAIN_LENGTH_MAX
 
     def __init__(self, locomotive: Locomotive, destination: int, carriages: List[Carriage] = None):
+
+        assert type(locomotive) == Locomotive, \
+            f'locomotive object is not Locomotive type, current type: {type(locomotive)}'
+        if destination < 0:
+            raise ValueError('destination cannot be negative')
+
         if carriages is None:
             carriages = []
 
@@ -77,6 +96,10 @@ class Train:
 class Station:
 
     def __init__(self, station_id: int) -> None:
+
+        if station_id < 0:
+            raise ValueError("station_id cannot be negative")
+
         self.station_id: int = station_id
         self.export_cargos: List[Cargo] = []
         self.import_cargos: List[Cargo] = []
@@ -192,7 +215,8 @@ class Graph:
         2. Документация
     """
 
-    def __init__(self, n: int, edges: list, cities=None, adjacency_matrix=None, directed=False, *args, **kwargs):
+    def __init__(self, n: int = 0, edges: list = None, cities=None, adjacency_matrix=None, directed=False, *args,
+                 **kwargs):
         """
         Args:
             n: count of vertices
@@ -203,8 +227,23 @@ class Graph:
             *args: smt
             **kwargs: smt
         """
-        self.graph = ig.Graph(n=n, edges=edges, directed=directed)
-        self.graph_with_matrix = ig.Graph.Adjacency(adjacency_matrix) if adjacency_matrix is not None else [[]]
+        self.graph = None
+        self.adjacency_matrix = [[]]
+
+        if n < 0:
+            raise ValueError('Number of vertices cannot be negative')
+
+        if n > 0 and edges is not None:
+            self.graph = ig.Graph(n=n, edges=edges, directed=directed)
+            self.adjacency_matrix = self.graph.get_adjacency()
+
+        elif adjacency_matrix is not None:
+            self.graph = ig.Graph.Adjacency(matrix=adjacency_matrix)
+            self.adjacency_matrix = self.graph.get_adjacency()
+
+        else:
+            raise TypeError('Give adjacency_matrix or n + edges pair for graph initialisation')
+
         if cities is not None:
             self.graph.vs["name"] = cities
         self.vertices = self.graph.vs
@@ -301,16 +340,15 @@ class Graph:
         ig.plot(self.graph, **visual_style)
 
     def floyd_warshall(self):
-        adj_graph = self.graph.get_adjacency()
-        print(adj_graph)
-        path_matrix = np.zeros(adj_graph.shape)
+        adj_graph = self.adjacency_matrix
+        path_matrix = np.zeros(adj_graph.shape, dtype=float)
         n = adj_graph.shape[0]
         for i in range(0, n):
             for j in range(0, n):
                 path_matrix[i, j] = i
                 if i != j and adj_graph[i, j] == 0:
-                    path_matrix[i, j] = -30000
-                    adj_graph[i, j] = 30000  # set zeros to any large number which is bigger then the longest way
+                    path_matrix[i, j] = -np.inf
+                    adj_graph[i, j] = np.inf
 
         for k in range(0, n):
             for i in range(0, n):
@@ -327,28 +365,32 @@ class Graph:
         i, j = int(i), int(j)
         if i == j:
             a.append(i)
-        elif path_matrix[i, j] == -30000:
+        elif np.isinf(path_matrix[i][j]):
             a.append(i)
             a.append("-")
             a.append(j)
         else:
-            a = self.restore_path_fw(path_matrix, i, path_matrix[i, j], a)
+            a = self.restore_path_fw(path_matrix, i, path_matrix[i][j], a)
             a.append(j)
         return a
 
 
 class World:
 
-    # II priority task, cannot be done without graph implementation
+    def __init__(self, name: str, init_graph: Graph):
 
-    def __init__(self, name: str, init_graph: Graph = None):
+        assert type(init_graph) == Graph, \
+            f'init_graph object is not Graph type, current type: {type(init_graph)}'
+
         self.date = 0
         self.stations = {}
         self.graph: Graph = init_graph
         self.station_index = 0
         self.name = name
-        self.stats = open(name + '_stats.txt', 'x')
-        self.stats.close()
+        if not os.path.isfile(self.name + '_stats.txt'):
+            with open(name + '_stats.txt', 'x'):
+                pass
+
 
     def __fill_stations_dict(self):
         for vertex in self.graph.get_vertices_list().indices:
@@ -356,11 +398,11 @@ class World:
 
     def __set_station_dest_dict(self, station: Station, p_matrix) -> None:
         for vertex in self.graph.get_vertices_list().indices:
-            path = self.graph.restore_path_fw(p_matrix, station.station_id, vertex)
-            if "-" in path:
-                station.destination_dict[vertex] = -1
+            path = self.graph.restore_path_fw(p_matrix, self.stations[station].station_id, vertex)
+            if "-" in path or vertex == station:
+                self.stations[station].destination_dict[vertex] = -1
             else:
-                station.destination_dict[vertex] = path[1]
+                self.stations[station].destination_dict[vertex] = path[1]
 
     def fill_dest_dicts(self) -> None:
         path_matrix = self.graph.floyd_warshall()
@@ -368,24 +410,86 @@ class World:
             self.__set_station_dest_dict(station, path_matrix)
 
     def collect_stats(self) -> None:
-        self.stats = open(self.name + '_stats.txt', 'a')
-
-        self.stats.write('\n' + str(self.date) + '\n')
-        for station in self.stations:
-            self.stats.write("Station: " + station.station_id + '\n' + '\t' + "Cargos: " + '\n')
-            for cargo in station.import_cargos:
-                self.stats.write('\t' + cargo.cargo_id + " [ " + cargo.cargo_type + " ] " + '\n')
-            self.stats.write("Trains:" + '\n')
-            for train in station.trains_out:
-                self.stats.write(
-                    '\t' + train.name + " : " + station + " -> " + train.dest +
-                    " - Locomotive: " + train.locomotive.locomotive_id + '\n')
-                for carriage in train.carriages:
-                    self.stats.write(
-                        '\t' + '\t' + carriage.carriage_id + " [ " + carriage.cargo.cargo_type +
-                        " ] " + " » " + carriage.cargo.destination + '\n')
+        with open(self.name + '_stats.txt', 'a') as stats:
+            stats = open(self.name + '_stats.txt', 'a')
+            stats.write('\n Date: ' + str(self.date) + '\n')
+            for station in self.stations:
+                stats.write("Station: " + str(self.stations[station].station_id) + '\n' + '\t' + "Cargos: " + '\n')
+                for cargo in self.stations[station].import_cargos:
+                    stats.write('\t' + str(cargo.cargo_id) + " [ " + str(cargo.cargo_type) + " ] " + '\n')
+                stats.write("Trains:" + '\n')
+                for train in self.stations[station].trains_out:
+                    stats.write(
+                        '\t' + train.name + " : " + station + " -> " + str(train.dest) +
+                        " - Locomotive: " + str(train.locomotive.locomotive_id) + '\n')
+                    for carriage in train.carriages:
+                        stats.write(
+                            '\t' + '\t' + str(carriage.carriage_id) + " [ " + carriage.cargo.cargo_type +
+                            " ] " + " » " + str(carriage.cargo.destination) + '\n')
 
     def tick(self) -> None:
+        self.collect_stats()
         for station in self.stations:
-            for train in station.trains_out:
-                self.stations[train.destination].add_train_in(station.delete_train_out(train.name))
+            for train in self.stations[station].trains_out:
+                self.stations[train.destination].add_train_in(self.stations[station].delete_train_out(train.name))
+        self.date += 1
+
+
+if __name__ == "__main__":
+    name = str(input('Введите имя:'))
+    n = int(input('Введите количество станций'))
+
+    stations = [Station(i) for i in range(n)]
+
+    for station in stations:
+
+        station.export_cargos = [Cargo(cargo_id=i*station.station_id,
+                                       mass=np.random.randint(1, 51),
+                                       destination=np.random.choice([i for i in range(n) if i != station.station_id]),
+                                       cargo_type=np.random.choice(list(CargoType))) for i in range(10)]
+        station.import_cargos = [Cargo(cargo_id=i*station.station_id,
+                                       mass=np.random.randint(1, 51),
+                                       destination=station.station_id,
+                                       cargo_type=np.random.choice(list(CargoType))) for i in range(10, 20)]
+
+        station.carriages = [Carriage(carriage_id= 10*i*station.station_id,
+                                      cargo=Cargo(cargo_id=100 * i * station.station_id,
+                                                  mass=np.random.randint(1, 51),
+                                                  destination=np.random.randint(0, n),
+                                                  cargo_type=np.random.choice(list(CargoType)))) for i in range(20, 25)]
+        station.locomotives = [Locomotive(locomotive_id=i*station.station_id) for i in range(7)]
+        station.trains_in = [Train(locomotive=Locomotive(locomotive_id=i * 10 * station.station_id),
+                                   destination=np.random.randint(0, n),
+                                   carriages=[Carriage(carriage_id=1000 * j * i * station.station_id,
+                                                       cargo=Cargo(cargo_id=10000 * i * j,
+                                                                   mass=np.random.randint(1, 50),
+                                                                   destination=np.random.randint(0, 3),
+                                                                   cargo_type=np.random.choice(list(CargoType))))
+                                              for j in range(15)])
+                             for i in range(10)]
+        station.trains_out = []
+
+    adj_mat = [[0, 1, 1, 0, 0, 0, 0, 0],
+               [0, 0, 0, 1, 0, 0, 0, 0],
+               [0, 0, 0, 1, 1, 0, 0, 0],
+               [0, 0, 0, 0, 0, 1, 0, 0],
+               [0, 0, 0, 0, 0, 1, 1, 0],
+               [0, 0, 0, 0, 0, 0, 0, 1],
+               [0, 0, 0, 0, 0, 0, 0, 1],
+               [1, 0, 0, 0, 0, 0, 0, 0]]
+
+    graph = Graph(adjacency_matrix=adj_mat)
+    world = World(name, graph)
+    for station in stations:
+        world.stations[station.station_id] = station
+
+    world.fill_dest_dicts()
+
+    t = 10
+    while True:
+        for i in range(t):
+            # time.sleep(1000)
+            world.tick()
+        b = str(input('Хотите продолжить? (да/нет)'))
+        if b != 'да':
+            break
