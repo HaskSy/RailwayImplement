@@ -408,11 +408,14 @@ class World:
 
     # II priority task, cannot be done without graph implementation
 
-    def __init__(self, init_graph: Graph = None):
+    def __init__(self, name: str, init_graph: Graph = None):
         self.date = 0
         self.stations = {}
         self.graph: Graph = init_graph
         self.station_index = 0
+        self.name = name
+        self.stats = open(name + '_stats.txt', 'x')
+        self.stats.close()
 
     def __fill_stations_dict(self):
         for vertex in self.graph.get_vertices_list().indices:
@@ -430,6 +433,24 @@ class World:
         path_matrix = self.graph.floyd_warshall()
         for station in self.stations:
             self.__set_station_dest_dict(station, path_matrix)
+
+    def collect_stats(self) -> None:
+        self.stats = open(self.name + '_stats.txt', 'a')
+
+        self.stats.write('\n' + str(self.date) + '\n')
+        for station in self.stations:
+            self.stats.write("Station: " + station.station_id + '\n' + '\t' + "Cargos: " + '\n')
+            for cargo in station.import_cargos:
+                self.stats.write('\t' + cargo.cargo_id + " [ " + cargo.cargo_type + " ] " + '\n')
+            self.stats.write("Trains:" + '\n')
+            for train in station.trains_out:
+                self.stats.write(
+                    '\t' + train.name + " : " + station + " -> " + train.dest +
+                    " - Locomotive: " + train.locomotive.locomotive_id + '\n')
+                for carriage in train.carriages:
+                    self.stats.write(
+                        '\t' + '\t' + carriage.carriage_id + " [ " + carriage.cargo.cargo_type +
+                        " ] " + " » " + carriage.cargo.destination + '\n')
 
     def tick(self) -> None:
         for station in self.stations:
