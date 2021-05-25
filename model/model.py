@@ -22,6 +22,13 @@ class CargoType(Enum):
 class Cargo:
 
     def __init__(self, cargo_id: int, mass: int, destination: int, cargo_type: CargoType):
+        if cargo_id < 0:
+            raise ValueError('cargo_id cannot be negative')
+        if mass < 0:
+            raise ValueError('mass cannot be negative')
+        if destination < 0:
+            raise ValueError('ID cannot be negative')
+
         self.cargo_id: int = cargo_id
         self.mass: int = mass
         self.destination: int = destination
@@ -32,10 +39,16 @@ class Carriage:
 
     __carriage_weight: Final = CONST.CARRIAGE_WEIGHT
 
-    def __init__(self, carriage_id: int, cargo: Cargo = None):
+    def __init__(self, carriage_id: int, cargo: Cargo):
+
+        if carriage_id < 0:
+            raise ValueError('carriage_id cannot be negative')
+        assert type(cargo) == Cargo, \
+            f'cargo object is not Cargo type, current type: {type(cargo)}'
+
         self.carriage_id: int = carriage_id
         self.cargo: Cargo = cargo
-        self.current_mass = cargo.mass + self.__carriage_weight
+        self.current_mass = self.__carriage_weight + self.cargo.mass
 
 
 class Locomotive:
@@ -43,6 +56,8 @@ class Locomotive:
     max_locomotive_carrying: Final = CONST.MAX_LOCOMOTIVE_CARRYING
 
     def __init__(self, locomotive_id: int):
+        if locomotive_id < 0:
+            raise ValueError('locomotive_id cannot be negative')
         self.locomotive_id: int = locomotive_id
 
 
@@ -51,6 +66,12 @@ class Train:
     train_length_max: Final = CONST.TRAIN_LENGTH_MAX
 
     def __init__(self, locomotive: Locomotive, destination: int, carriages: List[Carriage] = None):
+
+        assert type(locomotive) == Locomotive, \
+            f'locomotive object is not Locomotive type, current type: {type(locomotive)}'
+        if destination < 0:
+            raise ValueError('destination cannot be negative')
+
         if carriages is None:
             carriages = []
 
@@ -77,6 +98,9 @@ class Train:
 class Station:
 
     def __init__(self, station_id: int) -> None:
+        if station_id < 0:
+            raise ValueError("station_id cannot be negative")
+
         self.station_id: int = station_id
         self.export_cargos: List[Cargo] = []
         self.import_cargos: List[Cargo] = []
@@ -259,7 +283,7 @@ class Graph:
         2. Документация
     """
 
-    def __init__(self, n: int, edges: list, cities=None, adjacency_matrix=None, directed=False, *args, **kwargs):
+    def __init__(self, n: int = 0, edges: list = None, cities=None, adjacency_matrix=None, directed=False, *args, **kwargs):
         """
         Args:
             n: count of vertices
@@ -270,8 +294,23 @@ class Graph:
             *args: smt
             **kwargs: smt
         """
-        self.graph = ig.Graph(n=n, edges=edges, directed=directed)
-        self.graph_with_matrix = ig.Graph.Adjacency(adjacency_matrix) if adjacency_matrix is not None else [[]]
+        self.graph = None
+        self.adjacency_matrix = [[]]
+
+        if n < 0:
+            raise ValueError('Number of vertices cannot be negative')
+
+        if n > 0 and edges is not None:
+            self.graph = ig.Graph(n=n, edges=edges, directed=directed)
+            self.adjacency_matrix = self.graph.get_adjacency()
+
+        elif adjacency_matrix is not None:
+            self.graph = ig.Graph.Adjacency(matrix=adjacency_matrix)
+            self.adjacency_matrix = self.graph.get_adjacency()
+
+        else:
+            raise TypeError('Give adjacency_matrix or n + edges pair for graph initialisation')
+
         if cities is not None:
             self.graph.vs["name"] = cities
         self.vertices = self.graph.vs
@@ -368,16 +407,15 @@ class Graph:
         ig.plot(self.graph, **visual_style)
 
     def floyd_warshall(self):
-        adj_graph = self.graph.get_adjacency()
-        print(adj_graph)
-        path_matrix = np.zeros(adj_graph.shape)
+        adj_graph = self.adjacency_matrix
+        path_matrix = np.zeros(adj_graph.shape, dtype=float)
         n = adj_graph.shape[0]
         for i in range(0, n):
             for j in range(0, n):
                 path_matrix[i, j] = i
                 if i != j and adj_graph[i, j] == 0:
-                    path_matrix[i, j] = -30000
-                    adj_graph[i, j] = 30000  # set zeros to any large number which is bigger then the longest way
+                    path_matrix[i, j] = -np.inf
+                    adj_graph[i, j] = np.inf
 
         for k in range(0, n):
             for i in range(0, n):
@@ -394,21 +432,23 @@ class Graph:
         i, j = int(i), int(j)
         if i == j:
             a.append(i)
-        elif path_matrix[i, j] == -30000:
+        elif np.isinf(path_matrix[i][j]):
             a.append(i)
             a.append("-")
             a.append(j)
         else:
-            a = self.restore_path_fw(path_matrix, i, path_matrix[i, j], a)
+            a = self.restore_path_fw(path_matrix, i, path_matrix[i][j], a)
             a.append(j)
         return a
 
 
 class World:
 
-    # II priority task, cannot be done without graph implementation
+    def __init__(self, name: str, init_graph: Graph):
 
-    def __init__(self, name: str, init_graph: Graph = None):
+        assert type(init_graph) == Graph, \
+            f'init_graph object is not Graph type, current type: {type(init_graph)}'
+
         self.date = 0
         self.stations = {}
         self.graph: Graph = init_graph
@@ -456,3 +496,7 @@ class World:
         for station in self.stations:
             for train in station.trains_out:
                 self.stations[train.destination].add_train_in(station.delete_train_out(train.name))
+
+
+if __name__ == "__main__":
+    pass
